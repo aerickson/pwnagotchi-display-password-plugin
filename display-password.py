@@ -18,15 +18,22 @@ import os
 
 class DisplayPassword(plugins.Plugin):
     __author__ = '@nagy_craig'
-    __version__ = '1.0.0'
+    __version__ = '1.0.1'
     __license__ = 'GPL3'
     __description__ = 'A plugin to display recently cracked passwords'
-
+        
+    def __init__(self):
+        self.peers_detected = False
+    
     def on_loaded(self):
         logging.info("display-password loaded")
 
+
     def on_ui_setup(self, ui):
         if ui.is_waveshare_v2():
+            h_pos = (0, 95)
+            v_pos = (180, 61)
+        elif ui.is_waveshare_v4():
             h_pos = (0, 95)
             v_pos = (180, 61)
         elif ui.is_waveshare_v1():
@@ -60,6 +67,20 @@ class DisplayPassword(plugins.Plugin):
             ui.remove_element('display-password')
 
     def on_ui_update(self, ui):
-        last_line = 'tail -n 1 /root/handshakes/wpa-sec.cracked.potfile | awk -F: \'{print $3 " - " $4}\''
-        ui.set('display-password',
+        if self.peers_detected:
+            ui.hide_element('display-password')
+        else:
+            last_line = 'tail -n 1 /root/handshakes/wpa-sec.cracked.potfile | awk -F: \'{print $3 " - " $4}\''
+            ui.set('display-password',
                     "%s" % (os.popen(last_line).read().rstrip()))
+            ui.show_element('display-password')
+
+        
+
+    # Called when a new peer is detected
+    def on_peer_detected(self, agent, peer):
+        self.peers_detected = True
+
+    # Called when a known peer is lost
+    def on_peer_lost(self, agent, peer):
+        self.peers_detected = False
